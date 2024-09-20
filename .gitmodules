@@ -4,3 +4,6 @@
 [submodule "contracts/lib/pancake-v4-universal-router"]
 	path = contracts/lib/pancake-v4-universal-router
 	url = https://github.com/pancakeswap/pancake-v4-universal-router
+[submodule "contracts/lib/permit2"]
+	path = contracts/lib/permit2
+	url = https://github.com/pancakeswap/permit2
