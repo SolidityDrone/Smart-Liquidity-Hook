@@ -72,16 +72,38 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
     }
     
 
-    function testLowPriceImpactSwap() public {
+    // function testLowPriceImpactSwap() public {
+    //     testAddLiquidity();
+    //     PoolId poolId = key.toId();
+    //     (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+    //     uint160 sqrtPriceLimitX96 = uint160(uint256(sqrtPriceX96) * 1000 / 1005); 
+        
+    //     ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase.CLSwapExactInputSingleParams({
+    //         poolKey: key,
+    //         zeroForOne: true,
+    //         amountIn: 10e6,
+    //         amountOutMinimum: 0, // naive 
+    //         sqrtPriceLimitX96: sqrtPriceLimitX96,
+    //         hookData: hex''
+    //     });
+    //     console.log(IERC20(sepoliaUSDC).balanceOf(address(poolManager)));
+    //     console.log(IERC20(sepoliaUSDT).balanceOf(address(poolManager)));
+    //     exactInputSingle(params);
+    //     console.log(IERC20(sepoliaUSDC).balanceOf(address(poolManager)));
+    //     console.log(IERC20(sepoliaUSDT).balanceOf(address(poolManager)));
+    // }
+    
+
+    function testHighPriceImpactSwap() public {
         testAddLiquidity();
         PoolId poolId = key.toId();
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
         uint160 sqrtPriceLimitX96 = uint160(uint256(sqrtPriceX96) * 1000 / 1005); 
-        
+
         ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase.CLSwapExactInputSingleParams({
             poolKey: key,
             zeroForOne: true,
-            amountIn: 10e6,
+            amountIn: 50_000e6,
             amountOutMinimum: 0, // naive 
             sqrtPriceLimitX96: sqrtPriceLimitX96,
             hookData: hex''
@@ -89,24 +111,5 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
       
         exactInputSingle(params);
     }
-    
-
-    // function testHighPriceImpactSwap() public {
-    //     testAddLiquidity();
-    //     PoolId poolId = key.toId();
-    //     (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
-    //     uint160 sqrtPriceLimitX96 = uint160(uint256(sqrtPriceX96) * 1000 / 1005); 
-
-    //     ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase.CLSwapExactInputSingleParams({
-    //         poolKey: key,
-    //         zeroForOne: true,
-    //         amountIn: 50_000e6,
-    //         amountOutMinimum: 0, // naive 
-    //         sqrtPriceLimitX96: sqrtPriceLimitX96,
-    //         hookData: hex''
-    //     });
-      
-    //     exactInputSingle(params);
-    // }
 
 }
