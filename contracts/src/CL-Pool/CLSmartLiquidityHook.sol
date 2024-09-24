@@ -26,7 +26,6 @@ import {IERC20Metadata} from "openzeppelin-contracts/contracts/interfaces/IERC20
 import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
-import {TransientContext} from "./libraries/TransientContext.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "pancake-v4-core/src/types/BalanceDelta.sol";
 import {PositionConfig} from "pancake-v4-periphery/src/pool-cl/libraries/PositionConfig.sol";
 import {Planner, Plan} from "pancake-v4-periphery/src/libraries/Planner.sol";
@@ -35,7 +34,7 @@ import {CLPositionManager} from "pancake-v4-periphery/src/pool-cl/CLPositionMana
 import {ICLPositionManager} from "pancake-v4-periphery/src/pool-cl/interfaces/ICLPositionManager.sol";
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {UniversalRouter, RouterParameters} from "pancake-v4-universal-router/src/UniversalRouter.sol";
-
+import {SmartLiquidityToken} from "./libraries/SmartLiquidityToken.sol";
 contract CLSmartLiquidityHook is CLBaseHook{
     using CurrencyLibrary for Currency;
     using PoolIdLibrary for PoolKey;
@@ -72,6 +71,8 @@ contract CLSmartLiquidityHook is CLBaseHook{
 
     IPool public aavePool; 
 
+    SmartLiquidityToken public liquidityToken; 
+
     CLPositionManager positionManager;
 
     IAllowanceTransfer permit2;
@@ -97,10 +98,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
     bool addAtRunTime;
 
 
-    mapping(PoolId => PoolInfo) public poolInfo;
 
-    mapping(PoolId =>mapping(address=>stInfo)) public stInfos;
-    
     modifier ensure(uint256 deadline) {
         if (deadline < block.timestamp) revert ExpiredPastDeadline();
         _;
@@ -112,18 +110,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
         ICLPoolManager.ModifyLiquidityParams params;
     }
 
-    /// @member hasAccruedFees Whether the pool has accrued fees
-    /// @member liquidityToken The address of the liquidity token
-    struct PoolInfo {
-        bool hasAccruedFees;
-        address liquidityToken;
-    }
-
-    struct stInfo {
-        uint stToken0;
-        uint stToken1;
-    }
-
+ 
     struct AddLiquidityParams {
         Currency currency0;
         Currency currency1;
@@ -154,7 +141,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
         IAllowanceTransfer _permit2, 
         UniversalRouter _universalRouter
     ) CLBaseHook(_poolManager) {
-    
+        liquidityToken = new SmartLiquidityToken("LiquidityToken", "Hello hookaton");
         aavePool = IPool(_aavePool);
         positionManager = _positionManager;
         universalRouter = _universalRouter;
@@ -182,10 +169,6 @@ contract CLSmartLiquidityHook is CLBaseHook{
         );
     }
 
-
- 
-
-
     function addLiquidity(AddLiquidityParams memory params)
         public
         ensure(params.deadline)
@@ -205,7 +188,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
         
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
 
-        PoolInfo storage pool = poolInfo[poolId];
+        
 
         uint128 poolLiquidity = poolManager.getLiquidity(poolId);
         // Split the token amounts to 30% and 70%
@@ -241,12 +224,15 @@ contract CLSmartLiquidityHook is CLBaseHook{
         PositionConfig memory config = PositionConfig({poolKey: key, tickLower: MIN_TICK, tickUpper: MAX_TICK});
         Plan memory planner = Planner.init();
         planner = planner.add(
-            Actions.CL_MINT_POSITION, abi.encode(config, liquidityToAdd, amount0ToAdd, amount1ToAdd, msg.sender, new bytes(0))
+            Actions.CL_MINT_POSITION, abi.encode(config, liquidityToAdd, amount0ToAdd, amount1ToAdd, address(this), new bytes(0))
         );
         bytes memory data = planner.finalizeModifyLiquidityWithClose(key);
 
         senderIsHook = true;
         positionManager.modifyLiquidities(data, block.timestamp);
+        liquidityToken.mint(msg.sender, liquidityToAdd);
+
+        emit LiquidityAdded(key, msg.sender, amount0ToAdd, amount1ToAdd, amount0ToDeposit, amount1ToDeposit);
     }
 
     function addLiquidityDuringSwap( PoolKey memory poolKey)
@@ -261,7 +247,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
         
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
 
-        PoolInfo storage pool = poolInfo[poolId];
+
 
         IERC20 token0 =  IERC20(Currency.unwrap(poolKey.currency0));
         IERC20 token1 =  IERC20(Currency.unwrap(poolKey.currency1));
@@ -347,39 +333,66 @@ contract CLSmartLiquidityHook is CLBaseHook{
         return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
     
-    function afterRemoveLiquidity(
-        address,
-        PoolKey calldata,
-        ICLPoolManager.ModifyLiquidityParams calldata,
-        BalanceDelta,
-        bytes calldata
-    ) external override returns (bytes4, BalanceDelta) {
+ 
+
+    function removeLiquidity(RemoveLiquidityParams calldata params)
+        public
+        virtual
+        returns (BalanceDelta delta)
+    {
+        senderIsHook = true;
+        PoolKey memory key = PoolKey({
+            currency0: params.currency0,
+            currency1: params.currency1,
+            hooks: this,
+            poolManager: poolManager,
+            fee: params.fee,
+            parameters: params.parameters
+        });
+        PoolId poolId = key.toId();
+        IERC20 token0 =  IERC20(Currency.unwrap(key.currency0));
+        IERC20 token1 =  IERC20(Currency.unwrap(key.currency1));
         
-        return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
-    }
-
-
-    function removeLiquidity(
-        PoolKey memory poolKey, RemoveLiquidityParams memory params
-    ) public returns (BalanceDelta delta) {
-        
-        PoolId poolId = poolKey.toId();
-
         (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
 
         if (sqrtPriceX96 == 0) revert PoolNotInitialized();
 
-        delta = _modifyPosition(
-            poolKey,
-            ICLPoolManager.ModifyLiquidityParams({
-                tickLower: MIN_TICK,
-                tickUpper: MAX_TICK,
-                liquidityDelta: -(params.liquidity.toInt256()),
-                salt: bytes32(0)
-            })
-        );
-    }
+        // Get the total liquidity before removing
+        uint totalLiquidity = liquidityToken.totalSupply();
 
+        if (totalLiquidity == 0) revert PoolNotInitialized();
+
+        // Calculate the percentage of liquidity being removed
+        uint liquidityPercentage = (params.liquidity * 1e6) / totalLiquidity;
+
+        // Apply the percentage to withdraw the equivalent amount from Aave
+        (address aToken0, address aToken1) = getAaveLiquidTokens(Currency.unwrap(key.currency0), Currency.unwrap(key.currency1));
+
+        uint currentAaveDeposited0 = IERC20(aToken0).balanceOf(address(this));
+        uint currentAaveDeposited1 = IERC20(aToken1).balanceOf(address(this));
+
+        uint amountToWithdraw0 = (currentAaveDeposited0 * liquidityPercentage) / 1e6;
+        uint amountToWithdraw1 = (currentAaveDeposited1 * liquidityPercentage) / 1e6;
+
+        // Call the Aave withdraw function
+        aavePool.withdraw(address(token0), amountToWithdraw0, address(this));
+        aavePool.withdraw(address(token1), amountToWithdraw1, address(this));
+ 
+        // Step 4: Proceed with modifying the liquidity position and burning tokens
+        PositionConfig memory config = PositionConfig({poolKey: key, tickLower: MIN_TICK, tickUpper: MAX_TICK});
+
+        // amount0Min and amount1Min is 0 as some hook takes a fee from here
+        Plan memory planner = Planner.init().add(
+            Actions.CL_DECREASE_LIQUIDITY, abi.encode(1, config, params.liquidity, 0, 0, new bytes(0))
+        );
+        bytes memory data = planner.finalizeModifyLiquidityWithClose(key);
+        positionManager.modifyLiquidities(data, block.timestamp);
+        token0.transfer(msg.sender, token0.balanceOf(address(this)));
+        token1.transfer(msg.sender, token1.balanceOf(address(this)));
+
+        liquidityToken.burn(msg.sender, uint(params.liquidity));
+            
+    }
     
     function beforeRemoveLiquidity(
         address sender,
@@ -437,8 +450,8 @@ contract CLSmartLiquidityHook is CLBaseHook{
             actionParams[2] = abi.encode(address(token1));
             // 0x01 is for decrease liquidity; 0x17 is close currency;
             positionManager.modifyLiquiditiesWithoutLock(hex'011717', actionParams);
-
-                uint balance0 = IERC20(token0).balanceOf(address(this));
+            
+            uint balance0 = IERC20(token0).balanceOf(address(this));
             uint balance1 = IERC20(token1).balanceOf(address(this));
             IERC20(token0).approve(address(aavePool), balance0);    
             IERC20(token1).approve(address(aavePool), balance1);
@@ -450,6 +463,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
             delete withdrawTriggered;
             
         } 
+      
         delete senderIsHook;
         return (this.afterSwap.selector, 0);
     }
@@ -543,7 +557,6 @@ contract CLSmartLiquidityHook is CLBaseHook{
     function withdrawLiquidityAndInject(PoolKey calldata poolKey, address sender, uint256 priceImpact) internal {
         // Withdraw liquidity from Aave proportional to the price impact
         PoolId poolId = poolKey.toId();
-        stInfo memory info = stInfos[poolId][sender];
 
         address token0 = Currency.unwrap(poolKey.currency0);
         address token1 = Currency.unwrap(poolKey.currency1);

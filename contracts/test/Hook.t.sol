@@ -33,8 +33,8 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
     function setUp() public {
         (currency0, currency1) = deployContractsWithTokens();
         hook = new CLSmartLiquidityHook(poolManager, sepoliaAavePoolAddres, positionManager, permit2, universalRouter);
-        deal(sepoliaUSDC, address(this), 1e30);
-        deal(sepoliaUSDT, address(this), 1e30);
+        deal(sepoliaUSDC, address(this), 100_000e6);
+        deal(sepoliaUSDT, address(this), 100_000e6);
         
         key = PoolKey({
             currency0: currency0,
@@ -72,26 +72,26 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
     }
     
 
-    // function testLowPriceImpactSwap() public {
-    //     testAddLiquidity();
-    //     PoolId poolId = key.toId();
-    //     (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
-    //     uint160 sqrtPriceLimitX96 = uint160(uint256(sqrtPriceX96) * 1000 / 1005); 
+    function testLowPriceImpactSwap() public {
+        testAddLiquidity();
+        PoolId poolId = key.toId();
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        uint160 sqrtPriceLimitX96 = uint160(uint256(sqrtPriceX96) * 1000 / 1005); 
         
-    //     ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase.CLSwapExactInputSingleParams({
-    //         poolKey: key,
-    //         zeroForOne: true,
-    //         amountIn: 10e6,
-    //         amountOutMinimum: 0, // naive 
-    //         sqrtPriceLimitX96: sqrtPriceLimitX96,
-    //         hookData: hex''
-    //     });
-    //     console.log(IERC20(sepoliaUSDC).balanceOf(address(poolManager)));
-    //     console.log(IERC20(sepoliaUSDT).balanceOf(address(poolManager)));
-    //     exactInputSingle(params);
-    //     console.log(IERC20(sepoliaUSDC).balanceOf(address(poolManager)));
-    //     console.log(IERC20(sepoliaUSDT).balanceOf(address(poolManager)));
-    // }
+        ICLRouterBase.CLSwapExactInputSingleParams memory params = ICLRouterBase.CLSwapExactInputSingleParams({
+            poolKey: key,
+            zeroForOne: true,
+            amountIn: 10e6,
+            amountOutMinimum: 0, // naive 
+            sqrtPriceLimitX96: sqrtPriceLimitX96,
+            hookData: hex''
+        });
+        console.log(IERC20(sepoliaUSDC).balanceOf(address(poolManager)));
+        console.log(IERC20(sepoliaUSDT).balanceOf(address(poolManager)));
+        exactInputSingle(params);
+        console.log(IERC20(sepoliaUSDC).balanceOf(address(poolManager)));
+        console.log(IERC20(sepoliaUSDT).balanceOf(address(poolManager)));
+    }
     
 
     function testHighPriceImpactSwap() public {
@@ -110,6 +110,31 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
         });
       
         exactInputSingle(params);
+    }
+
+    function testWithdrawLiquidity() public {
+        console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
+        console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
+        testAddLiquidity();
+        console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
+        console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
+        address liquidityERC20 = address(hook.liquidityToken());
+        uint currentLiquidityBalance = IERC20(liquidityERC20).balanceOf(address(this));
+        
+        CLSmartLiquidityHook.RemoveLiquidityParams memory params = CLSmartLiquidityHook.RemoveLiquidityParams({
+            currency0: currency0,
+            currency1: currency1,
+            fee: uint24(100),
+            parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
+            liquidity: currentLiquidityBalance,
+            deadline: block.timestamp
+        });
+
+    
+        hook.removeLiquidity(params);
+        console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
+        console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
+
     }
 
 }
