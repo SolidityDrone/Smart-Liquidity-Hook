@@ -14,10 +14,9 @@ contract SmartLiquidityBrevis is BrevisAppZkOnly, Ownable {
 
 
     function handleProofResult(
-        bytes32 /*_requestId*/,
         bytes32 _vkHash,
         bytes calldata _circuitOutput
-    ) internal override {
+    ) internal override(BrevisAppZkOnly) {
       
         require(vkHash == _vkHash, "invalid vk");
        
@@ -33,7 +32,7 @@ contract SmartLiquidityBrevis is BrevisAppZkOnly, Ownable {
         address addr;
         return (salt, sumVolume, minBlockNum, addr);
     }
-
+ 
     function setVkHash(bytes32 _vkHash) external onlyOwner {
         vkHash = _vkHash;
     }
