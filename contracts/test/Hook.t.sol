@@ -21,8 +21,8 @@ import {PoolId, PoolIdLibrary} from "pancake-v4-core/src/types/PoolId.sol";
 contract CLSmartLiquidityHooktest is Script Test, CLTestUtils{
     using CLPoolParametersHelper for bytes32;
     using PoolIdLibrary for PoolKey;
-
-
+    
+    address internal brevisRequest = 0x841ce48F9446C8E281D3F1444cB859b4A6D0738C;
     address internal cLPoolManagerAddress = 0x08F012b8E2f3021db8bd2A896A7F422F4041F131;
     address internal sepoliaAavePoolAddres = 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951;
     PoolKey key;
@@ -32,7 +32,7 @@ contract CLSmartLiquidityHooktest is Script Test, CLTestUtils{
 
     function setUp() public {
         (currency0, currency1) = deployContractsWithTokens();
-        hook = new CLSmartLiquidityHook(poolManager, sepoliaAavePoolAddres, positionManager, permit2, universalRouter);
+        hook = new CLSmartLiquidityHook(poolManager, sepoliaAavePoolAddres, positionManager, permit2, universalRouter, brevisRequest);
         deal(sepoliaUSDC, address(this), 1e30);
         deal(sepoliaUSDT, address(this), 1e30);
         
