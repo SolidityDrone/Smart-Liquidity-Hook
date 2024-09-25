@@ -35,7 +35,6 @@ import {ICLPositionManager} from "pancake-v4-periphery/src/pool-cl/interfaces/IC
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {UniversalRouter, RouterParameters} from "pancake-v4-universal-router/src/UniversalRouter.sol";
 import {SmartLiquidityToken} from "./libraries/SmartLiquidityToken.sol";
-import {SmartLiquidityBrevis} from "./brevis/SmartLiquidityBrevis.sol";
 
 contract CLSmartLiquidityHook is CLBaseHook{
     using CurrencyLibrary for Currency;
@@ -96,7 +95,6 @@ contract CLSmartLiquidityHook is CLBaseHook{
     uint internal currAmountToDeposit0;
     uint internal currAmountToDeposit1;
     address internal currProvider;
-    SmartLiquidityBrevis internal brevis;
     bool internal withdrawTriggered;
     bool addAtRunTime;
 
@@ -142,15 +140,13 @@ contract CLSmartLiquidityHook is CLBaseHook{
         address _aavePool, 
         CLPositionManager _positionManager, 
         IAllowanceTransfer _permit2, 
-        UniversalRouter _universalRouter,
-        address _brevisRequest
+        UniversalRouter _universalRouter
     ) CLBaseHook(_poolManager) {
         liquidityToken = new SmartLiquidityToken("LiquidityToken", "Hello hookaton");
         aavePool = IPool(_aavePool);
         positionManager = _positionManager;
         universalRouter = _universalRouter;
         permit2 = _permit2;
-        brevis = new SmartLiquidityBrevis(_brevisRequest);
     }
 
     function getHooksRegistrationBitmap() external pure override returns (uint16) {
@@ -545,7 +541,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
         return newSqrtPriceX96;
     }
 
-
+    
     function calculatePriceImpact(uint256 currentSqrtPriceX96, uint256 newSqrtPriceX96) internal pure returns (uint256) {
         // Convert sqrtPriceX96 values back to actual prices by squaring them
         uint256 currentPrice = FullMath.mulDiv(currentSqrtPriceX96, currentSqrtPriceX96, FixedPoint96.Q96);

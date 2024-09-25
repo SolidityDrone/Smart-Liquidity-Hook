@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-<<<<<<< HEAD
-=======
 
->>>>>>> acdef9c91aec3a4ed6e3fb465a73c3fb3376c6a3
 import {IERC20} from "forge-std/interfaces/IERC20.sol";
 import {Script, console} from "forge-std/Script.sol";
 import {CLSmartLiquidityHook} from "../src/CL-Pool/CLSmartLiquidityHook.sol";
@@ -20,25 +17,6 @@ import {CLPoolParametersHelper} from "pancake-v4-core/src/pool-cl/libraries/CLPo
 import {PoolIdLibrary} from "pancake-v4-core/src/types/PoolId.sol";
 import {ICLRouterBase} from "pancake-v4-periphery/src/pool-cl/interfaces/ICLRouterBase.sol";
 import {PoolId, PoolIdLibrary} from "pancake-v4-core/src/types/PoolId.sol";
-<<<<<<< HEAD
-
-
-contract CounterScript is Script {
-
-    address internal sepoliaCLPositionManager = 0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9;
-    address internal sepoliaAavePool = 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951;
-    /*
-        
-
-    */
-    CLSmartLiquidityHook internal hook;
-    function setUp() public {}
-
-    function run() public {
-        vm.broadcast();
-        hook = new CLSmartLiquidityHook(ICLPoolManager(sepoliaCLPositionManager), sepoliaAavePool);
-    }
-=======
 
 contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
     using CLPoolParametersHelper for bytes32;
@@ -102,5 +80,4 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
 
     
 
->>>>>>> acdef9c91aec3a4ed6e3fb465a73c3fb3376c6a3
 }
