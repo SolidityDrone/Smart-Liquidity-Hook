@@ -35,6 +35,7 @@ import {ICLPositionManager} from "pancake-v4-periphery/src/pool-cl/interfaces/IC
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {UniversalRouter, RouterParameters} from "pancake-v4-universal-router/src/UniversalRouter.sol";
 import {SmartLiquidityToken} from "./libraries/SmartLiquidityToken.sol";
+import {SmartLiquidityBrevis} from "./brevis/SmartLiquidityBrevis.sol";
 
 contract CLSmartLiquidityHook is CLBaseHook{
     using CurrencyLibrary for Currency;
@@ -95,6 +96,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
     uint internal currAmountToDeposit0;
     uint internal currAmountToDeposit1;
     address internal currProvider;
+    SmartLiquidityBrevis internal brevis;
     bool internal withdrawTriggered;
     bool addAtRunTime;
 
@@ -140,13 +142,15 @@ contract CLSmartLiquidityHook is CLBaseHook{
         address _aavePool, 
         CLPositionManager _positionManager, 
         IAllowanceTransfer _permit2, 
-        UniversalRouter _universalRouter
+        UniversalRouter _universalRouter,
+        address _brevisRequest
     ) CLBaseHook(_poolManager) {
         liquidityToken = new SmartLiquidityToken("LiquidityToken", "Hello hookaton");
         aavePool = IPool(_aavePool);
         positionManager = _positionManager;
         universalRouter = _universalRouter;
         permit2 = _permit2;
+        brevis = new SmartLiquidityBrevis(_brevisRequest);
     }
 
     function getHooksRegistrationBitmap() external pure override returns (uint16) {
