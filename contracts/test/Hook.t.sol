@@ -18,7 +18,7 @@ import {PoolIdLibrary} from "pancake-v4-core/src/types/PoolId.sol";
 import {ICLRouterBase} from "pancake-v4-periphery/src/pool-cl/interfaces/ICLRouterBase.sol";
 import {PoolId, PoolIdLibrary} from "pancake-v4-core/src/types/PoolId.sol";
 
-contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
+contract CLSmartLiquidityHooktest is Script Test, CLTestUtils{
     using CLPoolParametersHelper for bytes32;
     using PoolIdLibrary for PoolKey;
 
@@ -93,7 +93,7 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
         console.log(IERC20(sepoliaUSDT).balanceOf(address(poolManager)));
     }
     
-
+    
     function testHighPriceImpactSwap() public {
         testAddLiquidity();
         PoolId poolId = key.toId();
