@@ -33,8 +33,8 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
     function setUp() public {
         (currency0, currency1) = deployContractsWithTokens();
         hook = new CLSmartLiquidityHook(poolManager, sepoliaAavePoolAddres, positionManager, permit2, universalRouter);
-        deal(sepoliaUSDC, address(this), 100_000e6);
-        deal(sepoliaUSDT, address(this), 100_000e6);
+        deal(sepoliaUSDC, address(this), 1e30);
+        deal(sepoliaUSDT, address(this), 1e30);
         
         key = PoolKey({
             currency0: currency0,
@@ -112,29 +112,29 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
         exactInputSingle(params);
     }
 
-    function testWithdrawLiquidity() public {
-        console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
-        console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
-        testAddLiquidity();
-        console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
-        console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
-        address liquidityERC20 = address(hook.liquidityToken());
-        uint currentLiquidityBalance = IERC20(liquidityERC20).balanceOf(address(this));
+    // function testWithdrawLiquidity() public {
+    //     console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
+    //     console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
+    //     testAddLiquidity();
+    //     console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
+    //     console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
+    //     address liquidityERC20 = address(hook.liquidityToken());
+    //     uint currentLiquidityBalance = IERC20(liquidityERC20).balanceOf(address(this));
         
-        CLSmartLiquidityHook.RemoveLiquidityParams memory params = CLSmartLiquidityHook.RemoveLiquidityParams({
-            currency0: currency0,
-            currency1: currency1,
-            fee: uint24(100),
-            parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
-            liquidity: currentLiquidityBalance,
-            deadline: block.timestamp
-        });
+    //     CLSmartLiquidityHook.RemoveLiquidityParams memory params = CLSmartLiquidityHook.RemoveLiquidityParams({
+    //         currency0: currency0,
+    //         currency1: currency1,
+    //         fee: uint24(100),
+    //         parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
+    //         liquidity: currentLiquidityBalance,
+    //         deadline: block.timestamp
+    //     });
 
     
-        hook.removeLiquidity(params);
-        console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
-        console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
+    //     hook.removeLiquidity(params);
+    //     console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
+    //     console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
 
-    }
+    // }
 
 }

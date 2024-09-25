@@ -35,6 +35,7 @@ import {ICLPositionManager} from "pancake-v4-periphery/src/pool-cl/interfaces/IC
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {UniversalRouter, RouterParameters} from "pancake-v4-universal-router/src/UniversalRouter.sol";
 import {SmartLiquidityToken} from "./libraries/SmartLiquidityToken.sol";
+
 contract CLSmartLiquidityHook is CLBaseHook{
     using CurrencyLibrary for Currency;
     using PoolIdLibrary for PoolKey;
@@ -450,7 +451,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
             actionParams[2] = abi.encode(address(token1));
             // 0x01 is for decrease liquidity; 0x17 is close currency;
             positionManager.modifyLiquiditiesWithoutLock(hex'011717', actionParams);
-            
+
             uint balance0 = IERC20(token0).balanceOf(address(this));
             uint balance1 = IERC20(token1).balanceOf(address(this));
             IERC20(token0).approve(address(aavePool), balance0);    
@@ -463,14 +464,12 @@ contract CLSmartLiquidityHook is CLBaseHook{
             delete withdrawTriggered;
             
         } 
-      
         delete senderIsHook;
         return (this.afterSwap.selector, 0);
     }
-    
 
 
-    function beforeSwap(
+ function beforeSwap(
         address sender, 
         PoolKey calldata poolKey, 
         ICLPoolManager.SwapParams calldata params, 
@@ -563,8 +562,8 @@ contract CLSmartLiquidityHook is CLBaseHook{
 
         (address aToken0, address aToken1) = getAaveLiquidTokens(token0, token1);
 
-        uint amount0 = aavePool.withdraw(Currency.unwrap(poolKey.currency0), IERC20(aToken0).balanceOf(address(this)), address(this));
-        uint amount1 = aavePool.withdraw(Currency.unwrap(poolKey.currency1), IERC20(aToken1).balanceOf(address(this)), address(this));
+        uint amount0 = aavePool.withdraw(token0, IERC20(aToken0).balanceOf(address(this)), address(this));
+        uint amount1 = aavePool.withdraw(token1, IERC20(aToken1).balanceOf(address(this)), address(this));
         withdrawTriggered = true;
 
         
