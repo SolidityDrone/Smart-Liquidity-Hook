@@ -22,7 +22,9 @@ import {CLPoolManager} from "pancake-v4-core/src/pool-cl/CLPoolManager.sol";
 import {CLPositionManager} from "pancake-v4-periphery/src/pool-cl/CLPositionManager.sol";
 import {PoolKey} from "pancake-v4-core/src/types/PoolKey.sol";
 import {UniversalRouter, RouterParameters} from "pancake-v4-universal-router/src/UniversalRouter.sol";
-contract PCSDeployer is Script, Test{
+
+
+contract HookInitializer is Script, Test{
     using CLPoolParametersHelper for bytes32;
     using PoolIdLibrary for PoolKey;
     
