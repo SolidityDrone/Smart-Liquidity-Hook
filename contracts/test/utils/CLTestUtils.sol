@@ -73,11 +73,6 @@ contract CLTestUtils is DeployPermit2 {
         token0.approve(address(permit2), type(uint256).max);
         token1.approve(address(permit2), type(uint256).max);
 
-        permit2.approve(address(token0), address(positionManager), type(uint160).max, type(uint48).max);
-        permit2.approve(address(token1), address(positionManager), type(uint160).max, type(uint48).max);
-
-        permit2.approve(address(token0), address(universalRouter), type(uint160).max, type(uint48).max);
-        permit2.approve(address(token1), address(universalRouter), type(uint160).max, type(uint48).max);
         
         return sort(token0, token1);
     }

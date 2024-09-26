@@ -18,13 +18,14 @@ import {PoolIdLibrary} from "pancake-v4-core/src/types/PoolId.sol";
 import {ICLRouterBase} from "pancake-v4-periphery/src/pool-cl/interfaces/ICLRouterBase.sol";
 import {PoolId, PoolIdLibrary} from "pancake-v4-core/src/types/PoolId.sol";
 
-contract CLSmartLiquidityHooktest is Script Test, CLTestUtils{
+contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
     using CLPoolParametersHelper for bytes32;
     using PoolIdLibrary for PoolKey;
     
     address internal brevisRequest = 0x841ce48F9446C8E281D3F1444cB859b4A6D0738C;
-    address internal cLPoolManagerAddress = 0x08F012b8E2f3021db8bd2A896A7F422F4041F131;
+    address internal cLPoolManagerAddress = 0x6F9302eE8760c764d775B1550C65468Ec4C25Dfc;
     address internal sepoliaAavePoolAddres = 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951;
+    
     PoolKey key;
     Currency currency0;
     Currency currency1;    
@@ -112,29 +113,29 @@ contract CLSmartLiquidityHooktest is Script Test, CLTestUtils{
         exactInputSingle(params);
     }
 
-    // function testWithdrawLiquidity() public {
-    //     console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
-    //     console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
-    //     testAddLiquidity();
-    //     console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
-    //     console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
-    //     address liquidityERC20 = address(hook.liquidityToken());
-    //     uint currentLiquidityBalance = IERC20(liquidityERC20).balanceOf(address(this));
+    function testWithdrawLiquidity() public {
+        console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
+        console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
+        testAddLiquidity();
+        console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
+        console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
+        address liquidityERC20 = address(hook.liquidityToken());
+        uint currentLiquidityBalance = IERC20(liquidityERC20).balanceOf(address(this));
         
-    //     CLSmartLiquidityHook.RemoveLiquidityParams memory params = CLSmartLiquidityHook.RemoveLiquidityParams({
-    //         currency0: currency0,
-    //         currency1: currency1,
-    //         fee: uint24(100),
-    //         parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
-    //         liquidity: currentLiquidityBalance,
-    //         deadline: block.timestamp
-    //     });
+        CLSmartLiquidityHook.RemoveLiquidityParams memory params = CLSmartLiquidityHook.RemoveLiquidityParams({
+            currency0: currency0,
+            currency1: currency1,
+            fee: uint24(100),
+            parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
+            liquidity: currentLiquidityBalance,
+            deadline: block.timestamp
+        });
 
     
-    //     hook.removeLiquidity(params);
-    //     console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
-    //     console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
+        hook.removeLiquidity(params);
+        console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
+        console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
 
-    // }
+    }
 
 }

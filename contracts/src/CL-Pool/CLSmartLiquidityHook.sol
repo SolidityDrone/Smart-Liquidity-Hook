@@ -23,7 +23,6 @@ import {FullMath} from "pancake-v4-core/src/pool-cl/libraries/FullMath.sol";
 import {CLPoolManager} from "pancake-v4-core/src/pool-cl/CLPoolManager.sol";
 import {FixedPointMathLib} from "solmate/src/utils/FixedPointMathLib.sol";
 import {IERC20Metadata} from "openzeppelin-contracts/contracts/interfaces/IERC20Metadata.sol";
-import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {IERC20} from "openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import {BalanceDelta, BalanceDeltaLibrary} from "pancake-v4-core/src/types/BalanceDelta.sol";
@@ -35,6 +34,7 @@ import {ICLPositionManager} from "pancake-v4-periphery/src/pool-cl/interfaces/IC
 import {IAllowanceTransfer} from "permit2/src/interfaces/IAllowanceTransfer.sol";
 import {UniversalRouter, RouterParameters} from "pancake-v4-universal-router/src/UniversalRouter.sol";
 import {SmartLiquidityToken} from "./libraries/SmartLiquidityToken.sol";
+import {SmartLiquidityBrevis} from "./brevis/SmartLiquidityBrevis.sol";
 
 contract CLSmartLiquidityHook is CLBaseHook{
     using CurrencyLibrary for Currency;
@@ -80,6 +80,8 @@ contract CLSmartLiquidityHook is CLBaseHook{
 
     UniversalRouter universalRouter;
 
+    SmartLiquidityBrevis internal brevis;
+
     bytes internal constant ZERO_BYTES = bytes("");
 
     /// @dev Min tick for full range with tick spacing of 60
@@ -93,9 +95,13 @@ contract CLSmartLiquidityHook is CLBaseHook{
     bool internal senderIsHook;
 
     uint internal currAmountToDeposit0;
+    
     uint internal currAmountToDeposit1;
+
     address internal currProvider;
+
     bool internal withdrawTriggered;
+    
     bool addAtRunTime;
 
 
@@ -140,13 +146,15 @@ contract CLSmartLiquidityHook is CLBaseHook{
         address _aavePool, 
         CLPositionManager _positionManager, 
         IAllowanceTransfer _permit2, 
-        UniversalRouter _universalRouter
+        UniversalRouter _universalRouter,
+        address _requestBrevis
     ) CLBaseHook(_poolManager) {
         liquidityToken = new SmartLiquidityToken("LiquidityToken", "Hello hookaton");
         aavePool = IPool(_aavePool);
         positionManager = _positionManager;
         universalRouter = _universalRouter;
         permit2 = _permit2;
+        brevis = new SmartLiquidityBrevis(_requestBrevis);
     }
 
     function getHooksRegistrationBitmap() external pure override returns (uint16) {
@@ -469,7 +477,7 @@ contract CLSmartLiquidityHook is CLBaseHook{
     }
 
 
- function beforeSwap(
+    function beforeSwap(
         address sender, 
         PoolKey calldata poolKey, 
         ICLPoolManager.SwapParams calldata params, 
