@@ -49,9 +49,11 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
     using SafeERC20 for IERC20;
     using Planner for Plan;
 
-    event LiquidityAdded(address indexed user, uint liquidity);
+    
+    event LiquidityAdded(address indexed user, uint256 liquidity, uint256 time);
 
-    event LiquidityRemoved(address indexed user, uint liquidity);
+    event LiquidityRemoved(address indexed user, uint256 liquidity, uint256 time);
+
 
     /// @notice Interact with a non-initialized pool
     error PoolNotInitialized();
@@ -262,7 +264,7 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         totalContributions += (block.timestamp - lastUpdate) * liquidityToken.totalSupply();
         lastUpdate = block.timestamp;
 
-        emit LiquidityAdded(msg.sender, liquidity);
+        emit LiquidityAdded(msg.sender, liquidity, block.timestamp);
     }
 
 
@@ -345,7 +347,7 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         totalContributions += (block.timestamp - lastUpdate) * liquidityToken.totalSupply();
         lastUpdate = block.timestamp;
         liquidityToken.burn(msg.sender, uint(params.liquidity));
-        emit LiquidityRemoved(msg.sender, params.liquidity);
+        emit LiquidityRemoved(msg.sender, params.liquidity, block.timestamp);
     }
     
 

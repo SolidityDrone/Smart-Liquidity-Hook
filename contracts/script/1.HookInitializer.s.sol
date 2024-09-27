@@ -88,15 +88,13 @@ contract HookInitializer is Script, Test{
         vm.broadcast();
         CLPoolManager(cLPoolManagerAddress).initialize(key, Constants.SQRT_RATIO_1_1, new bytes(0));
 
-        
         vm.startBroadcast();
-       
         IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDC), address(universalRouter), type(uint160).max, type(uint48).max);
         IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDT), address(universalRouter), type(uint160).max, type(uint48).max);
         IERC20(sepoliaUSDC).approve(address(hook), type(uint).max);
         IERC20(sepoliaUSDT).approve(address(hook), type(uint).max);
         CLPoolManager(cLPoolManagerAddress).initialize(key, Constants.SQRT_RATIO_1_1, new bytes(0));
-         hook.setVkHash(vkHash);
+        hook.setVkHash(vkHash);
         vm.stopBroadcast();
 
         ///////////////////////
@@ -119,9 +117,6 @@ contract HookInitializer is Script, Test{
         IERC20(sepoliaUSDT).approve(address(hook), type(uint).max);
         vm.broadcast();
         hook.addLiquidity(params);
-
-
-
     }
 
     function sort(ERC20 tokenA, ERC20 tokenB)
