@@ -147,7 +147,6 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         uint256 deadline;
     }
 
-
     constructor(
         ICLPoolManager _poolManager,
         address _aavePool, 
@@ -165,25 +164,11 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         aavePoolDataProvider = _aavePoolDataProvider;
     }
     
-    function setVkHash(bytes32 _vkHash) external onlyOwner {
-        vkHash = _vkHash;
-    }
 
-    function afterInitialize(
-        address, 
-        PoolKey calldata key, 
-        uint160, 
-        int24, 
-        bytes calldata
-    )
-        external
-        override
-        returns (bytes4)
-    {
-        token0 =  IERC20(Currency.unwrap(key.currency0));
-        token1 =  IERC20(Currency.unwrap(key.currency1));
-        return this.afterInitialize.selector;
-    }
+    /////////////////
+    // P U B L I C //
+    /////////////////
+
 
     function getHooksRegistrationBitmap() external pure override returns (uint16) {
         return _hooksRegistrationBitmapFrom(
@@ -284,71 +269,34 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         emit LiquidityAdded(msg.sender, amount0ToAdd, amount1ToAdd);
     }
 
-
-
-
-    function addLiquidityDuringSwap( PoolKey memory poolKey)
-        public
-    {   
-        senderIsHook = true;
-        PoolId poolId = poolKey.toId();
-        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
-        
-        if (sqrtPriceX96 == 0) revert PoolNotInitialized();
-
-        IERC20 token0 =  IERC20(Currency.unwrap(poolKey.currency0));
-        IERC20 token1 =  IERC20(Currency.unwrap(poolKey.currency1));
-        uint desiredAmount0 = token0.balanceOf(address(this)) - rewardsAccrued.token0Bal;
-        uint desiredAmount1 = token1.balanceOf(address(this)) - rewardsAccrued.token1Bal;
-
-        uint128 liquidityToAdd = LiquidityAmounts.getLiquidityForAmounts(
-            sqrtPriceX96,
-            TickMath.getSqrtRatioAtTick(MIN_TICK),
-            TickMath.getSqrtRatioAtTick(MAX_TICK),
-            desiredAmount0,
-            desiredAmount1
-        );
-
-        token0.approve(address(poolManager),  desiredAmount0);
-        token1.approve(address(poolManager),  desiredAmount1);
-
-        token0.approve(address(permit2), desiredAmount0);
-        token1.approve(address(permit2), desiredAmount1);
-       
-        permit2.approve(address(token0), address(positionManager), type(uint160).max, type(uint48).max);
-        permit2.approve(address(token1), address(positionManager), type(uint160).max, type(uint48).max);
-      
-        PositionConfig memory config = PositionConfig({poolKey: poolKey, tickLower: MIN_TICK, tickUpper: MAX_TICK});
-        Plan memory planner = Planner.init();
-        planner = planner.add(
-            Actions.CL_INCREASE_LIQUIDITY, abi.encode(1, config, liquidityToAdd,  type(uint128).max, type(uint128).max, ZERO_BYTES)
-        );
-        bytes memory actions = planner.finalizeModifyLiquidityWithClose(poolKey);
-  
-        
-        bytes[] memory actionParams = new bytes[](3);
-        actionParams[0] = abi.encode(1, config, liquidityToAdd,  type(uint128).max, type(uint128).max, ZERO_BYTES);
-        actionParams[1] = abi.encode(address(token0));
-        actionParams[2] = abi.encode(address(token1));
-        // 0x00 is for increase liquidity; 0x17 is close currency;
-        positionManager.modifyLiquiditiesWithoutLock(hex'001717', actionParams);
-        
+    function setVkHash(bytes32 _vkHash) external onlyOwner {
+        vkHash = _vkHash;
     }
 
 
-    /// @dev Users can only add liquidity through this hook
-    function beforeAddLiquidity(
-        address sender,
-        PoolKey calldata key,
-        ICLPoolManager.ModifyLiquidityParams calldata params,
-        bytes calldata hookData
-    ) external override poolManagerOnly returns (bytes4) {
-        if (!senderIsHook) revert SenderMustBeHook();
-        
-        senderIsHook = false;
-        return this.beforeAddLiquidity.selector;
+
+    ///////////////////
+    // H  O  O  K  S //
+    ///////////////////
+
+
+
+    function afterInitialize(
+        address, 
+        PoolKey calldata key, 
+        uint160, 
+        int24, 
+        bytes calldata
+    )
+        external
+        override
+        returns (bytes4)
+    {
+        token0 =  IERC20(Currency.unwrap(key.currency0));
+        token1 =  IERC20(Currency.unwrap(key.currency1));
+        return this.afterInitialize.selector;
     }
-  
+
     function afterAddLiquidity(
         address,
         PoolKey calldata poolKey, 
@@ -366,8 +314,6 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         // Return the calculated negative BalanceDelta
         return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
     }
-    
- 
 
     function removeLiquidity(RemoveLiquidityParams calldata params)
         public
@@ -450,6 +396,20 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         liquidityToken.burn(msg.sender, uint(params.liquidity));
     }
     
+
+    /// @dev Users can only add liquidity through this hook
+    function beforeAddLiquidity(
+        address sender,
+        PoolKey calldata key,
+        ICLPoolManager.ModifyLiquidityParams calldata params,
+        bytes calldata hookData
+    ) external override poolManagerOnly returns (bytes4) {
+        if (!senderIsHook) revert SenderMustBeHook();
+        
+        senderIsHook = false;
+        return this.beforeAddLiquidity.selector;
+    }
+
     function beforeRemoveLiquidity(
         address sender,
         PoolKey calldata key,
@@ -545,6 +505,12 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         return (this.beforeSwap.selector, BeforeSwapDeltaLibrary.ZERO_DELTA, 0);
     }
 
+
+
+    //////////////////////
+    // I N T E R N A L //
+    /////////////////////
+ 
     function estimateNewSqrtPrice(
         uint160 sqrtPriceX96, 
         int256 amountSpecified, 
@@ -627,9 +593,56 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
             rewardsAccrued.token1Bal += claim1;
         }
         withdrawTriggered = true;
-        addLiquidityDuringSwap(poolKey);
+        _addLiquidityDuringSwap(poolKey);
     }
 
+    function _addLiquidityDuringSwap(PoolKey memory poolKey)
+        internal
+    {   
+        senderIsHook = true;
+        PoolId poolId = poolKey.toId();
+        (uint160 sqrtPriceX96,,,) = poolManager.getSlot0(poolId);
+        
+        if (sqrtPriceX96 == 0) revert PoolNotInitialized();
+
+        IERC20 token0 =  IERC20(Currency.unwrap(poolKey.currency0));
+        IERC20 token1 =  IERC20(Currency.unwrap(poolKey.currency1));
+        uint desiredAmount0 = token0.balanceOf(address(this)) - rewardsAccrued.token0Bal;
+        uint desiredAmount1 = token1.balanceOf(address(this)) - rewardsAccrued.token1Bal;
+
+        uint128 liquidityToAdd = LiquidityAmounts.getLiquidityForAmounts(
+            sqrtPriceX96,
+            TickMath.getSqrtRatioAtTick(MIN_TICK),
+            TickMath.getSqrtRatioAtTick(MAX_TICK),
+            desiredAmount0,
+            desiredAmount1
+        );
+
+        token0.approve(address(poolManager),  desiredAmount0);
+        token1.approve(address(poolManager),  desiredAmount1);
+
+        token0.approve(address(permit2), desiredAmount0);
+        token1.approve(address(permit2), desiredAmount1);
+       
+        permit2.approve(address(token0), address(positionManager), type(uint160).max, type(uint48).max);
+        permit2.approve(address(token1), address(positionManager), type(uint160).max, type(uint48).max);
+      
+        PositionConfig memory config = PositionConfig({poolKey: poolKey, tickLower: MIN_TICK, tickUpper: MAX_TICK});
+        Plan memory planner = Planner.init();
+        planner = planner.add(
+            Actions.CL_INCREASE_LIQUIDITY, abi.encode(1, config, liquidityToAdd,  type(uint128).max, type(uint128).max, ZERO_BYTES)
+        );
+        bytes memory actions = planner.finalizeModifyLiquidityWithClose(poolKey);
+  
+        
+        bytes[] memory actionParams = new bytes[](3);
+        actionParams[0] = abi.encode(1, config, liquidityToAdd,  type(uint128).max, type(uint128).max, ZERO_BYTES);
+        actionParams[1] = abi.encode(address(token0));
+        actionParams[2] = abi.encode(address(token1));
+        // 0x00 is for increase liquidity; 0x17 is close currency;
+        positionManager.modifyLiquiditiesWithoutLock(hex'001717', actionParams);
+        
+    }
 
     function getAaveLiquidTokens(address token0, address token1) internal view returns (address st0, address st1){
         st0 = IPool(address(aavePool)).getReserveData(token0).aTokenAddress;
@@ -675,14 +688,10 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         totalContributions -= contribution;
     }
 
-    // In app circuit we have:
-    // api.OutputUint(248, vol)
     function decodeOutput(bytes calldata o) internal pure returns (uint256, address) {
         uint248 contribution = uint248(bytes31(o[0:31])); 
         address contributor = address(bytes20(o[32:51]));
         return (uint256(contribution), contributor);
     }
-
-
 
 }

@@ -26,7 +26,8 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
     address internal cLPoolManagerAddress = 0x6F9302eE8760c764d775B1550C65468Ec4C25Dfc;
     address internal sepoliaAavePoolAddres = 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951;
     address internal sepoliaPoolDataProvider = 0x3e9708d80f7B3e43118013075F7e95CE3AB31F31;
-    
+    bytes32 internal vkHash = bytes32(0);
+
     PoolKey key;
     Currency currency0;
     Currency currency1;    
@@ -74,6 +75,7 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
         IERC20(sepoliaUSDC).approve(address(hook), type(uint).max);
         IERC20(sepoliaUSDT).approve(address(hook), type(uint).max);
         poolManager.initialize(key, Constants.SQRT_RATIO_1_1, encodedParams);
+        hook.setVkHash(vkHash);
     }
 
     function testAddLiquidity() public {

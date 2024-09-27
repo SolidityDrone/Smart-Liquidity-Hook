@@ -47,6 +47,7 @@ contract HookInitializer is Script, Test{
     address internal sepoliaUniversalRouter = 0xf342FfB466018938c6251E2CC62Cf6AD8D936cf8;
     address internal sepoliaPoolDataProvider = 0x3e9708d80f7B3e43118013075F7e95CE3AB31F31;
     
+    bytes32 vkHash = bytes32(0); // temporary
     PoolKey key;
     Currency currency0;
     Currency currency1;    
@@ -84,7 +85,11 @@ contract HookInitializer is Script, Test{
         });
         vm.broadcast();
         CLPoolManager(cLPoolManagerAddress).initialize(key, Constants.SQRT_RATIO_1_1, new bytes(0));
+
+        
         vm.startBroadcast();
+        hook.setVkHash(vkHash);
+        
         IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDC), address(universalRouter), type(uint160).max, type(uint48).max);
         IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDT), address(universalRouter), type(uint160).max, type(uint48).max);
         vm.stopBroadcast();
