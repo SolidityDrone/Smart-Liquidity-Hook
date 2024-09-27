@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.18;
 
+
 // App that only accepts ZK-attested results.
 abstract contract BrevisAppZkOnly {
     address public brevisRequest;
@@ -30,4 +31,6 @@ abstract contract BrevisAppZkOnly {
             handleProofResult(_appVkHashes[i], _appCircuitOutputs[i]);
         }
     }
+
+    
 }

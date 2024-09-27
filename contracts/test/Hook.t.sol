@@ -25,6 +25,7 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
     address internal brevisRequest = 0x841ce48F9446C8E281D3F1444cB859b4A6D0738C;
     address internal cLPoolManagerAddress = 0x6F9302eE8760c764d775B1550C65468Ec4C25Dfc;
     address internal sepoliaAavePoolAddres = 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951;
+    address internal sepoliaPoolDataProvider = 0x3e9708d80f7B3e43118013075F7e95CE3AB31F31;
     
     PoolKey key;
     Currency currency0;
@@ -33,7 +34,15 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
 
     function setUp() public {
         (currency0, currency1) = deployContractsWithTokens();
-        hook = new CLSmartLiquidityHook(poolManager, sepoliaAavePoolAddres, positionManager, permit2, universalRouter, brevisRequest);
+        hook = new CLSmartLiquidityHook(
+            poolManager,
+            sepoliaAavePoolAddres, 
+            positionManager, 
+            permit2, 
+            universalRouter, 
+            brevisRequest, 
+            sepoliaPoolDataProvider
+            );
         deal(sepoliaUSDC, address(this), 1e30);
         deal(sepoliaUSDT, address(this), 1e30);
         
@@ -45,10 +54,26 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
             fee: uint24(100), 
             parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10)
         });
-
         
-        poolManager.initialize(key, Constants.SQRT_RATIO_1_1, new bytes(0));
-      
+        CLSmartLiquidityHook.AddLiquidityParams memory params = CLSmartLiquidityHook.AddLiquidityParams({
+            currency0: currency0,
+            currency1: currency1,
+            fee: uint24(100),
+            parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
+            amount0Desired: 1_000e6,
+            amount1Desired: 1_000e6,
+            amount0Min: 1,  // naive
+            amount1Min: 1, // naive
+            to: address(this),
+            deadline: block.timestamp + 180 seconds
+        });  
+        permit2.approve(address(sepoliaUSDC), address(positionManager), type(uint160).max, type(uint48).max);
+        permit2.approve(address(sepoliaUSDT), address(positionManager), type(uint160).max, type(uint48).max);
+        bytes memory encodedParams = abi.encode(params);
+               
+        IERC20(sepoliaUSDC).approve(address(hook), type(uint).max);
+        IERC20(sepoliaUSDT).approve(address(hook), type(uint).max);
+        poolManager.initialize(key, Constants.SQRT_RATIO_1_1, encodedParams);
     }
 
     function testAddLiquidity() public {
@@ -62,7 +87,7 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
             amount0Min: 1,  // naive
             amount1Min: 1, // naive
             to: address(this),
-            deadline: block.timestamp
+            deadline: block.timestamp + 180 seconds
         });
 
         IERC20(sepoliaUSDC).approve(address(hook), type(uint).max);
@@ -87,6 +112,8 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
             sqrtPriceLimitX96: sqrtPriceLimitX96,
             hookData: hex''
         });
+     
+
         console.log(IERC20(sepoliaUSDC).balanceOf(address(poolManager)));
         console.log(IERC20(sepoliaUSDT).balanceOf(address(poolManager)));
         exactInputSingle(params);
@@ -109,7 +136,9 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
             sqrtPriceLimitX96: sqrtPriceLimitX96,
             hookData: hex''
         });
-      
+        
+
+
         exactInputSingle(params);
     }
 

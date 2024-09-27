@@ -45,7 +45,8 @@ contract HookInitializer is Script, Test{
     address internal sepoliaAavePoolAddress = 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951;
     address internal sepoliaPositionManager = 0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9;
     address internal sepoliaUniversalRouter = 0xf342FfB466018938c6251E2CC62Cf6AD8D936cf8;
-
+    address internal sepoliaPoolDataProvider = 0x3e9708d80f7B3e43118013075F7e95CE3AB31F31;
+    
     PoolKey key;
     Currency currency0;
     Currency currency1;    
@@ -68,7 +69,8 @@ contract HookInitializer is Script, Test{
             CLPositionManager(sepoliaPositionManager), 
             IAllowanceTransfer(sepoliaPermit2), 
             UniversalRouter(payable(address(sepoliaUniversalRouter))), 
-            brevisRequest
+            brevisRequest,
+            sepoliaAavePoolAddress
         );
    
         
@@ -82,7 +84,10 @@ contract HookInitializer is Script, Test{
         });
         vm.broadcast();
         CLPoolManager(cLPoolManagerAddress).initialize(key, Constants.SQRT_RATIO_1_1, new bytes(0));
-
+        vm.startBroadcast();
+        IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDC), address(universalRouter), type(uint160).max, type(uint48).max);
+        IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDT), address(universalRouter), type(uint160).max, type(uint48).max);
+        vm.stopBroadcast();
     }
 
     function sort(ERC20 tokenA, ERC20 tokenB)
@@ -96,12 +101,4 @@ contract HookInitializer is Script, Test{
             (_currency0, _currency1) = (Currency.wrap(address(tokenB)), Currency.wrap(address(tokenA)));
         }
     }
-
-    
-
-    
-
-
-    
-
 }
