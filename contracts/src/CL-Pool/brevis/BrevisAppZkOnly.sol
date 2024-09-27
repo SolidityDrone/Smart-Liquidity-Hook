@@ -14,7 +14,7 @@ abstract contract BrevisAppZkOnly {
     constructor(address _brevisRequest) {
         brevisRequest = _brevisRequest;
     }
-
+    
     function handleProofResult(bytes32 _vkHash, bytes calldata _appCircuitOutput) internal virtual {
         // to be overrided by custom app
     }

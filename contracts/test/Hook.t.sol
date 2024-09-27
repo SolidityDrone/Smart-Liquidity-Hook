@@ -169,4 +169,15 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
 
     }
 
+    function testHandlingBrevisOutputDecoding() public {
+        vm.prank(brevisRequest);
+        
+ 
+        (uint contribution, address contributor) = hook.decodeOutput( abi.encodePacked(uint248(555), address(this)));
+        assertEq(contribution, 555);
+        assertEq(contributor, address(this));
+        
+        
+    }
+
 }

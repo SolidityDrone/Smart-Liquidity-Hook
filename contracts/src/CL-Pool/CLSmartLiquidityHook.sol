@@ -36,9 +36,6 @@ import {SmartLiquidityToken} from "./libraries/SmartLiquidityToken.sol";
 import {BrevisAppZkOnly} from "./brevis/BrevisAppZkOnly.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-
-
-
 interface AToken {
     function scaledBalanceOf(address user) external view returns (uint256);
 }
@@ -52,10 +49,9 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
     using SafeERC20 for IERC20;
     using Planner for Plan;
 
+    event LiquidityAdded(address indexed user, uint liquidity);
 
-
-    event LiquidityAdded(address indexed user, uint amount0added, uint amount1added);
-    event LiquidityRemoved(address indexed user, uint amount0, uint amount1);
+    event LiquidityRemoved(address indexed user, uint liquidity);
 
     /// @notice Interact with a non-initialized pool
     error PoolNotInitialized();
@@ -266,54 +262,9 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         totalContributions += (block.timestamp - lastUpdate) * liquidityToken.totalSupply();
         lastUpdate = block.timestamp;
 
-        emit LiquidityAdded(msg.sender, amount0ToAdd, amount1ToAdd);
+        emit LiquidityAdded(msg.sender, liquidity);
     }
 
-    function setVkHash(bytes32 _vkHash) external onlyOwner {
-        vkHash = _vkHash;
-    }
-
-
-
-    ///////////////////
-    // H  O  O  K  S //
-    ///////////////////
-
-
-
-    function afterInitialize(
-        address, 
-        PoolKey calldata key, 
-        uint160, 
-        int24, 
-        bytes calldata
-    )
-        external
-        override
-        returns (bytes4)
-    {
-        token0 =  IERC20(Currency.unwrap(key.currency0));
-        token1 =  IERC20(Currency.unwrap(key.currency1));
-        return this.afterInitialize.selector;
-    }
-
-    function afterAddLiquidity(
-        address,
-        PoolKey calldata poolKey, 
-        ICLPoolManager.ModifyLiquidityParams calldata params,
-        BalanceDelta balanceDelta,
-        bytes calldata
-    ) external override poolManagerOnly returns (bytes4, BalanceDelta) {  
-        if (!withdrawTriggered){   
-            token0.approve(address(aavePool), currAmountToDeposit0);
-            token1.approve(address(aavePool), currAmountToDeposit1);
-            aavePool.deposit(Currency.unwrap(poolKey.currency0), currAmountToDeposit0, address(this), 0);
-            aavePool.deposit(Currency.unwrap(poolKey.currency1), currAmountToDeposit0, address(this), 0);
-        }
-  
-        // Return the calculated negative BalanceDelta
-        return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
-    }
 
     function removeLiquidity(RemoveLiquidityParams calldata params)
         public
@@ -394,8 +345,56 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         totalContributions += (block.timestamp - lastUpdate) * liquidityToken.totalSupply();
         lastUpdate = block.timestamp;
         liquidityToken.burn(msg.sender, uint(params.liquidity));
+        emit LiquidityRemoved(msg.sender, params.liquidity);
     }
     
+
+    function setVkHash(bytes32 _vkHash) external onlyOwner {
+        vkHash = _vkHash;
+    }
+
+
+
+    ///////////////////
+    // H  O  O  K  S //
+    ///////////////////
+
+
+
+    function afterInitialize(
+        address, 
+        PoolKey calldata key, 
+        uint160, 
+        int24, 
+        bytes calldata
+    )
+        external
+        override
+        returns (bytes4)
+    {
+        token0 =  IERC20(Currency.unwrap(key.currency0));
+        token1 =  IERC20(Currency.unwrap(key.currency1));
+        return this.afterInitialize.selector;
+    }
+
+    function afterAddLiquidity(
+        address,
+        PoolKey calldata poolKey, 
+        ICLPoolManager.ModifyLiquidityParams calldata params,
+        BalanceDelta balanceDelta,
+        bytes calldata
+    ) external override poolManagerOnly returns (bytes4, BalanceDelta) {  
+        if (!withdrawTriggered){   
+            token0.approve(address(aavePool), currAmountToDeposit0);
+            token1.approve(address(aavePool), currAmountToDeposit1);
+            aavePool.deposit(Currency.unwrap(poolKey.currency0), currAmountToDeposit0, address(this), 0);
+            aavePool.deposit(Currency.unwrap(poolKey.currency1), currAmountToDeposit0, address(this), 0);
+        }
+  
+        // Return the calculated negative BalanceDelta
+        return (this.afterAddLiquidity.selector, BalanceDeltaLibrary.ZERO_DELTA);
+    }
+
 
     /// @dev Users can only add liquidity through this hook
     function beforeAddLiquidity(
@@ -674,6 +673,8 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         (uint contribution, address contributor) = decodeOutput(_appCircuitOutput);
         uint actualContribution = contribution - userContributionConsumption[contributor];
 
+        require(totalContributions > 0, "No contributions");
+
         uint256 contributionPercentage = 
             (actualContribution * 1000000) / totalContributions;
 
@@ -688,10 +689,9 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         totalContributions -= contribution;
     }
 
-    function decodeOutput(bytes calldata o) internal pure returns (uint256, address) {
+    function decodeOutput(bytes calldata o) public pure returns (uint256, address) {
         uint248 contribution = uint248(bytes31(o[0:31])); 
-        address contributor = address(bytes20(o[32:51]));
+        address contributor = address(bytes20(o[31:]));
         return (uint256(contribution), contributor);
     }
-
 }

@@ -52,6 +52,8 @@ contract HookInitializer is Script, Test{
     Currency currency0;
     Currency currency1;    
     CLSmartLiquidityHook internal hook;
+    PoolId poolId;
+
     ERC20 token0;
     ERC20 token1;
     function setUp() public {
@@ -88,11 +90,38 @@ contract HookInitializer is Script, Test{
 
         
         vm.startBroadcast();
-        hook.setVkHash(vkHash);
-        
+       
         IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDC), address(universalRouter), type(uint160).max, type(uint48).max);
         IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDT), address(universalRouter), type(uint160).max, type(uint48).max);
+        IERC20(sepoliaUSDC).approve(address(hook), type(uint).max);
+        IERC20(sepoliaUSDT).approve(address(hook), type(uint).max);
+        CLPoolManager(cLPoolManagerAddress).initialize(key, Constants.SQRT_RATIO_1_1, new bytes(0));
+         hook.setVkHash(vkHash);
         vm.stopBroadcast();
+
+        ///////////////////////
+        //  1. Add Liquidity //
+        ///////////////////////
+        CLSmartLiquidityHook.AddLiquidityParams memory params = CLSmartLiquidityHook.AddLiquidityParams({
+            currency0: currency0,
+            currency1: currency1,
+            fee: uint24(100),
+            parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
+            amount0Desired: 1000e6,
+            amount1Desired: 1000e6,
+            amount0Min: 1,  // naive
+            amount1Min: 1, // naive
+            to: address(this),
+            deadline: block.timestamp + 180 seconds
+        });
+
+        IERC20(sepoliaUSDC).approve(address(hook), type(uint).max);
+        IERC20(sepoliaUSDT).approve(address(hook), type(uint).max);
+        vm.broadcast();
+        hook.addLiquidity(params);
+
+
+
     }
 
     function sort(ERC20 tokenA, ERC20 tokenB)
