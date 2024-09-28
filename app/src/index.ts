@@ -94,7 +94,7 @@ async function main() {
         const logIndex = log.logIndex;
         const txHash = log.transactionHash;
         const eventType = log.eventType;
-
+   
         // Extract 'user' address from topics[1]
         const user = `0x${log.topics[1].slice(26)}`;
 
@@ -106,9 +106,12 @@ async function main() {
         const time = decodedData[1];
 
         console.log(`Adding Receipt for ${eventType} with values:`, {
-            user: user.toLowerCase(),
+            user: user,
             liquidity: liquidity.toString(),
             time: time.toString(),
+            logIndex: logIndex,
+            block: blockNumber,
+            hash: txHash
         });
 
         proofReq.addReceipt(
@@ -121,15 +124,15 @@ async function main() {
                         log_index: logIndex,
                         event_id: log.topics[0], // Event signature
                         is_topic: true,  // 'user' address is in topic
-                        field_index: 1,
-                        value: user,
+                        field_index: 1,  // Assuming this is correct for the event signature
+                        value: addressToCheck,
                     }),
                     new Field({
                         contract: emitter_contract,
                         log_index: logIndex,
                         event_id: log.topics[0],
                         is_topic: false,  // 'liquidity' is in data
-                        field_index: 2,
+                        field_index: 2,  // Changed to unique index
                         value: liquidity.toString(),
                     }),
                     new Field({
@@ -137,7 +140,7 @@ async function main() {
                         log_index: logIndex,
                         event_id: log.topics[0],
                         is_topic: false,  // 'time' is in data
-                        field_index: 3,
+                        field_index: 3,  // Changed to unique index
                         value: time.toString(),
                     })
                 ]
@@ -145,15 +148,31 @@ async function main() {
         );
     }
     
-    // Optional: Submit and prove the proofReq using brevis and prover
-    // const proofRes = await prover.prove(proofReq);
-    // if (proofRes.has_err) {
-    //     console.error('Error proving:', proofRes.err);
-    //     return;
-    // }
+  
+    const proofRes = await prover.prove(proofReq);
+    
+      // error handling
+      if (proofRes.has_err) {
+        const err = proofRes.err;
+        switch (err.code) {
+            case ErrCode.ERROR_INVALID_INPUT:
+                console.error('invalid receipt/storage/transaction input:', err.msg);
+                break;
 
-    // const brevisRes = await brevis.submit(proofReq, proofRes, 1, 11155111, 1, "", callbackAddress);
-    // await brevis.wait(brevisRes.queryKey, 11155111);
+            case ErrCode.ERROR_INVALID_CUSTOM_INPUT:
+                console.error('invalid custom input:', err.msg);
+                break;
+
+            case ErrCode.ERROR_FAILED_TO_PROVE:
+                console.error('failed to prove:', err.msg);
+                break;
+        }
+        return;
+    }
+
+
+    const brevisRes = await brevis.submit(proofReq, proofRes, 11155111, 11155111, 0, "", "");
+    //await brevis.wait(brevisRes.queryKey, 11155111);
 }
 
 main().catch(error => {
