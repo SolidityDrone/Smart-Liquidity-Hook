@@ -75,6 +75,8 @@ async function main() {
         allEvents = [...allEvents, ...addLiqEvents, ...remLiqEvents];
     }
 
+    let receiptCounter = 0;
+
     // Sort the combined events array by the 'time' field
     allEvents.sort((a, b) => {
         const decodedDataA = ethers.utils.defaultAbiCoder.decode(
@@ -90,11 +92,45 @@ async function main() {
 
     // Process each event and add receipts
     for (const log of allEvents) {
-        const blockNumber = log.blockNumber;
-        const logIndex = log.logIndex;
+        // Typecasting logIndex
+        let logIndex: number;
+
+        // Match type case of logIndex string or number or BigInt and make it number
+        switch (typeof log.logIndex) {
+            case 'string':
+                logIndex = parseInt(log.logIndex);
+                break;
+            case 'number':
+                logIndex = log.logIndex;
+                break;
+            case 'bigint':
+                logIndex = Number(log.logIndex);
+                break;
+            default:
+                throw new Error('Invalid logIndex type');
+        }
+
+        // Typecasting blockNumber
+        let blockNumber: number;
+
+        // Match type case of block number string or number or BigInt and make it number
+        switch (typeof log.blockNumber) {
+            case 'string':
+                blockNumber = parseInt(log.blockNumber);
+                break;
+            case 'bigint':
+                blockNumber = Number(log.blockNumber);
+                break;
+            case 'number':
+                blockNumber = log.blockNumber;
+                break;
+            default:
+                throw new Error('Invalid block number type');
+        }
+
         const txHash = log.transactionHash;
         const eventType = log.eventType;
-   
+
         // Extract 'user' address from topics[1]
         const user = `0x${log.topics[1].slice(26)}`;
 
@@ -124,7 +160,7 @@ async function main() {
                         log_index: logIndex,
                         event_id: log.topics[0], // Event signature
                         is_topic: true,  // 'user' address is in topic
-                        field_index: 1,  // Assuming this is correct for the event signature
+                        field_index: 1,  //
                         value: addressToCheck,
                     }),
                     new Field({
@@ -144,15 +180,19 @@ async function main() {
                         value: time.toString(),
                     })
                 ]
-            })
+            }),
+            receiptCounter // Use receiptCounter here
         );
+        // Increment the receipt counter for the next receipt
+        receiptCounter++;
+        
     }
+
     
-  
     const proofRes = await prover.prove(proofReq);
     
-      // error handling
-      if (proofRes.has_err) {
+    // Error handling
+    if (proofRes.has_err) {
         const err = proofRes.err;
         switch (err.code) {
             case ErrCode.ERROR_INVALID_INPUT:
@@ -170,9 +210,8 @@ async function main() {
         return;
     }
 
-
     const brevisRes = await brevis.submit(proofReq, proofRes, 11155111, 11155111, 0, "", "");
-    //await brevis.wait(brevisRes.queryKey, 11155111);
+    await brevis.wait(brevisRes.queryKey, 11155111);
 }
 
 main().catch(error => {
