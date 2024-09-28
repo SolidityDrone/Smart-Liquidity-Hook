@@ -54,11 +54,7 @@ func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
 
 	// Process receipts to calculate contribution points
 	_ = sdk.Map(receipts, func(l sdk.Receipt) sdk.Uint248 {
-		// Check if Fields has enough elements
-		if len(l.Fields) < 4 {
-			// Log an error or handle appropriately
-			return sdk.ConstUint248(0) // Or any default value
-		}
+		
 		
 		// Extract the current timestamp and liquidity safely
 		currentTimestamp := api.ToUint248(l.Fields[3].Value) // Assuming index 3 is the time field
@@ -99,3 +95,5 @@ func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
 
 	return nil
 }
+
+
