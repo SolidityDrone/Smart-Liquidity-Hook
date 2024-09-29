@@ -24,30 +24,22 @@ import {PoolKey} from "pancake-v4-core/src/types/PoolKey.sol";
 import {UniversalRouter, RouterParameters} from "pancake-v4-universal-router/src/UniversalRouter.sol";
 
 
-contract HookInitializer is Script, Test{
+contract RemoveLiquidity is Script, Test{
     using CLPoolParametersHelper for bytes32;
     using PoolIdLibrary for PoolKey;
     
-    
-    CLPoolManager poolManager;
-    CLPositionManager positionManager;
-    IAllowanceTransfer permit2;
-    UniversalRouter universalRouter;
-
-    address internal sepoliaDai = 0xFF34B3d4Aee8ddCd6F9AFFFB6Fe49bD371b8a357;
+        
     address internal sepoliaUSDT = 0xaA8E23Fb1079EA71e0a56F48a2aA51851D8433D0;
     address internal sepoliaUSDC = 0x94a9D9AC8a22534E3FaCa9F4e7F2E2cf85d5E4C8;
     address internal sepoliaPermit2 = 0x31c2F6fcFf4F8759b3Bd5Bf0e1084A055615c768;
     address internal sepoliaVault = 0xA9B361Df352a80BA3213c656b4EfA5436EC80362;
-
-    address internal brevisRequest = 0x841ce48F9446C8E281D3F1444cB859b4A6D0738C;
     address internal cLPoolManagerAddress = 0x6F9302eE8760c764d775B1550C65468Ec4C25Dfc;
     address internal sepoliaAavePoolAddress = 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951;
     address internal sepoliaPositionManager = 0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9;
     address internal sepoliaUniversalRouter = 0xf342FfB466018938c6251E2CC62Cf6AD8D936cf8;
-    address internal sepoliaPoolDataProvider = 0x3e9708d80f7B3e43118013075F7e95CE3AB31F31;
-    
-    bytes32 vkHash = bytes32(0); // temporary
+
+    address internal deployedHookIstance = 0x8b0A10f3ECC0a52c40ae2B5D3726a4A068FC6655;
+
     PoolKey key;
     Currency currency0;
     Currency currency1;    
@@ -61,62 +53,28 @@ contract HookInitializer is Script, Test{
         token1 = ERC20(sepoliaUSDT);
 
         (currency0, currency1) = sort(token0, token1);
+        hook = CLSmartLiquidityHook(deployedHookIstance);
     }
 
     function run() public {
     
-        vm.broadcast();
-        hook = new CLSmartLiquidityHook(
-            CLPoolManager(cLPoolManagerAddress), 
-            sepoliaAavePoolAddress, 
-            CLPositionManager(sepoliaPositionManager), 
-            IAllowanceTransfer(sepoliaPermit2), 
-            UniversalRouter(payable(address(sepoliaUniversalRouter))), 
-            brevisRequest,
-            sepoliaAavePoolAddress
-        );
-   
+        //////////////////////////
+        //  1. Remove Liquidity //
+        /////////////////////////
+        address liquidityERC20 = address(hook.liquidityToken());
+        uint currentLiquidityBalance = IERC20(liquidityERC20).balanceOf(address(msg.sender));
         
-        key = PoolKey({
-            currency0: currency0,
-            currency1: currency1,
-            hooks: hook,
-            poolManager: ICLPoolManager(cLPoolManagerAddress),
-            fee: uint24(100), 
-            parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10)
-        });
-        vm.broadcast();
-        CLPoolManager(cLPoolManagerAddress).initialize(key, Constants.SQRT_RATIO_1_1, new bytes(0));
-
-        vm.startBroadcast();
-        IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDC), address(universalRouter), type(uint160).max, type(uint48).max);
-        IAllowanceTransfer(sepoliaPermit2).approve(address(sepoliaUSDT), address(universalRouter), type(uint160).max, type(uint48).max);
-        IERC20(sepoliaUSDC).approve(address(hook), type(uint).max);
-        IERC20(sepoliaUSDT).approve(address(hook), type(uint).max);
- 
-        hook.setVkHash(vkHash);
-
-
-        ///////////////////////
-        //  1. Add Liquidity //
-        ///////////////////////
-        CLSmartLiquidityHook.AddLiquidityParams memory params = CLSmartLiquidityHook.AddLiquidityParams({
+        CLSmartLiquidityHook.RemoveLiquidityParams memory params = CLSmartLiquidityHook.RemoveLiquidityParams({
             currency0: currency0,
             currency1: currency1,
             fee: uint24(100),
             parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
-            amount0Desired: 1000e6,
-            amount1Desired: 1000e6,
-            amount0Min: 1,  // naive
-            amount1Min: 1, // naive
-            to: address(this),
-            deadline: block.timestamp + 180 seconds
+            liquidity: currentLiquidityBalance / 2,   // 50% of deposited liquidity
+            deadline: block.timestamp 
         });
 
-        IERC20(sepoliaUSDC).approve(address(hook), type(uint).max);
-        IERC20(sepoliaUSDT).approve(address(hook), type(uint).max);
-        hook.addLiquidity(params);
-        vm.stopBroadcast();
+        vm.broadcast();
+        hook.removeLiquidity(params);
     }
 
     function sort(ERC20 tokenA, ERC20 tokenB)

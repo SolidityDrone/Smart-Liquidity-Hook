@@ -32,7 +32,7 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
     Currency currency0;
     Currency currency1;    
     CLSmartLiquidityHook internal hook;
-
+    
     function setUp() public {
         (currency0, currency1) = deployContractsWithTokens();
         hook = new CLSmartLiquidityHook(
@@ -162,22 +162,21 @@ contract CLSmartLiquidityHooktest is Script, Test, CLTestUtils{
             deadline: block.timestamp
         });
 
-    
         hook.removeLiquidity(params);
         console.logUint(IERC20(sepoliaUSDC).balanceOf(address(this)));
         console.logUint(IERC20(sepoliaUSDT).balanceOf(address(this)));
-
     }
 
     function testHandlingBrevisOutputDecoding() public {
         vm.prank(brevisRequest);
         
- 
-        (uint contribution, address contributor) = hook.decodeOutput( abi.encodePacked(uint248(555), address(this)));
+        (uint contribution, address contributor, uint lastLiquidity, uint lastTimestamp) =
+            hook.decodeOutput(
+                abi.encodePacked(uint248(555), address(this), uint248(500), uint248(block.timestamp - 1 days))
+            );
         assertEq(contribution, 555);
         assertEq(contributor, address(this));
-        
-        
+        assertEq(lastLiquidity, uint248(500));
+        assertEq(lastTimestamp, uint248(block.timestamp - 1 days));
     }
-
 }

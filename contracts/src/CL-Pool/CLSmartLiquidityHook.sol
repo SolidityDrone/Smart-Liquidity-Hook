@@ -93,12 +93,8 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
     address internal aavePoolDataProvider;
 
     bool internal withdrawTriggered;
-    
-    bool addAtRunTime;
 
     uint internal totalContributions;
-
-    uint internal contributionMemo;
 
     uint internal lastUpdate;
 
@@ -672,9 +668,12 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
 
         require(vkHash == _vkHash, "invalid vk");
 
-        (uint contribution, address contributor) = decodeOutput(_appCircuitOutput);
-        uint actualContribution = contribution - userContributionConsumption[contributor];
+        (uint contribution, address contributor, uint lastLiquidity, uint lastTimestamp) = decodeOutput(_appCircuitOutput);
+        uint timeTillNow = block.timestamp - lastTimestamp;
 
+        uint actualContribution = 
+            (contribution + (timeTillNow * lastLiquidity) )- userContributionConsumption[contributor];
+    
         require(totalContributions > 0, "No contributions");
 
         uint256 contributionPercentage = 
@@ -691,9 +690,11 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         totalContributions -= contribution;
     }
 
-    function decodeOutput(bytes calldata o) public pure returns (uint256, address) {
-        uint248 contribution = uint248(bytes31(o[0:31])); 
-        address contributor = address(bytes20(o[31:]));
-        return (uint256(contribution), contributor);
+    function decodeOutput(bytes calldata o) public pure returns (uint256, address, uint256, uint256) {
+        uint256 contribution = uint248(bytes31(o[0:31])); 
+        address contributor = address(bytes20(o[31:51]));
+        uint256 lastLiquidity = uint248(bytes31(o[51:82]));
+        uint256 lastTimestamp = uint248(bytes31(o[82:]));
+        return (contribution, contributor, lastLiquidity, lastTimestamp);
     }
 }

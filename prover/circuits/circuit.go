@@ -4,6 +4,7 @@ import (
 	"github.com/brevis-network/brevis-sdk/sdk"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"fmt"
 )
 
 type AppCircuit struct{}
@@ -26,7 +27,7 @@ var _ sdk.AppCircuit = &AppCircuit{}
 
 // Allocate memory for receipts
 func (c *AppCircuit) Allocate() (maxReceipts, maxStorage, maxTransactions int) {
-	return 20, 0, 0
+	return 2, 0, 0
 }
 
 func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
@@ -39,28 +40,53 @@ func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
 	var lastTimestamp = sdk.ConstUint248(0)
 	var cumulativeContribution = sdk.ConstUint248(0)
 
+	// sanity check
+	sdk.AssertEach(receipts, func(l sdk.Receipt) sdk.Uint248 {
+		assertionPassed := u248.And(
+			u248.IsEqual(l.Fields[0].Contract, SourceContract),    
+			u248.IsEqual(l.Fields[0].Index, sdk.ConstUint248(1)),  // Field 0 (LogFieldData) should have Index 1
+			u248.IsEqual(l.Fields[1].Index, sdk.ConstUint248(2)),  // Field 1 (LogFieldData) should have Index 2
+			u248.IsEqual(l.Fields[2].Index, sdk.ConstUint248(3)),  // Field 2 (LogFieldData) should have Index 3
+			u248.Or(
+				u248.IsEqual(l.Fields[0].EventID, LiquidityAddedTopic),
+				u248.IsEqual(l.Fields[0].EventID, LiquidityRemovedTopic),
+			),
+			u248.Or(
+				u248.IsEqual(l.Fields[1].EventID, LiquidityAddedTopic),
+				u248.IsEqual(l.Fields[1].EventID, LiquidityRemovedTopic),
+			),
+			u248.Or(
+				u248.IsEqual(l.Fields[2].EventID, LiquidityAddedTopic),
+				u248.IsEqual(l.Fields[2].EventID, LiquidityRemovedTopic),
+			),
+			
+		)
+		return assertionPassed
+	})
+	
 	// Process receipts
 	sdk.Map(receipts, func(cur sdk.Receipt) sdk.Uint248 {
 		// Extract current timestamp and liquidity
 		currentTimestamp := api.ToUint248(cur.Fields[3].Value)
 		currentLiquidity := api.ToUint248(cur.Fields[2].Value)
-
+		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[1].Value, cur.Fields[1].Value);
+		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[2].Value, cur.Fields[2].Value);
+		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[2].Value, cur.Fields[2].Index);
+		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[2].Value, cur.Fields[2].EventID);
+		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[2].Value, cur.Fields[2].Contract);
 		// Initialize contribution
 		var contribution = sdk.ConstUint248(0)
 
 		// Check if it's a LiquidityAdded event
 		if bytes.IsEqual(api.ToBytes32(cur.Fields[0].EventID), api.ToBytes32(LiquidityAddedTopic)) != sdk.ConstUint248(0) {
-			if u248.IsZero(lastTimestamp) == sdk.ConstUint248(0) {
-				elapsedTime := u248.Sub(currentTimestamp, lastTimestamp)
-				contribution = u248.Mul(lastLiquidity, elapsedTime)
-			}
+	
+			elapsedTime := u248.Sub(currentTimestamp, lastTimestamp)
+			contribution = u248.Mul(lastLiquidity, elapsedTime)
 			lastLiquidity = currentLiquidity
 			lastTimestamp = currentTimestamp
 		} else if bytes.IsEqual(api.ToBytes32(cur.Fields[0].EventID), api.ToBytes32(LiquidityRemovedTopic)) != sdk.ConstUint248(0) {
-			if u248.IsZero(lastTimestamp) == sdk.ConstUint248(0) {
-				elapsedTime := u248.Sub(currentTimestamp, lastTimestamp)
-				contribution = u248.Mul(lastLiquidity, elapsedTime)
-			}
+			elapsedTime := u248.Sub(currentTimestamp, lastTimestamp)
+			contribution = u248.Mul(lastLiquidity, elapsedTime)
 			lastLiquidity = u248.Sub(lastLiquidity, currentLiquidity)
 			lastTimestamp = currentTimestamp
 		}
@@ -72,8 +98,10 @@ func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
 	})
 
 	// Output the cumulative contribution result and user address
-	api.OutputUint(248, cumulativeContribution)
+	api.OutputUint(256, cumulativeContribution)
 	api.OutputAddress(UserAddr)
-
+	api.OutputUint(248, lastLiquidity)
+	api.OutputUint(248, lastTimestamp)
+	
 	return nil
 }

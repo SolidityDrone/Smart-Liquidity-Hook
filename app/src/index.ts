@@ -20,7 +20,7 @@ async function main() {
     const remLiqEventTopic = ethers.utils.id(remLiqSignature);
 
     const addressToCheck = "0xCAc3f7c8C771476251e93B44CB7afA0C2eDd5EB0";
-    const callbackAddress = "0xeec66d9b615ff84909be1cb1fe633cc26150417d";
+    const callbackAddress = "0xeec66d9b615ff84909be1cb1fe633cc26150417d ";
 
     const startBlock = 6771000;
     const endBlock = await provider.getBlockNumber();
@@ -190,7 +190,7 @@ async function main() {
 
     
     const proofRes = await prover.prove(proofReq);
-    
+
     // Error handling
     if (proofRes.has_err) {
         const err = proofRes.err;
@@ -209,8 +209,9 @@ async function main() {
         }
         return;
     }
+    console.log(proofRes.proof);
 
-    const brevisRes = await brevis.submit(proofReq, proofRes, 11155111, 11155111, 0, "", "");
+    const brevisRes = await brevis.submit(proofReq, proofRes, 11155111, 11155111, 1, "", callbackAddress);
     await brevis.wait(brevisRes.queryKey, 11155111);
 }
 
