@@ -69,11 +69,7 @@ func (c *AppCircuit) Define(api *sdk.CircuitAPI, in sdk.DataInput) error {
 		// Extract current timestamp and liquidity
 		currentTimestamp := api.ToUint248(cur.Fields[3].Value)
 		currentLiquidity := api.ToUint248(cur.Fields[2].Value)
-		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[1].Value, cur.Fields[1].Value);
-		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[2].Value, cur.Fields[2].Value);
-		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[2].Value, cur.Fields[2].Index);
-		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[2].Value, cur.Fields[2].EventID);
-		fmt.Printf("Liquidity type: %T, value: %s\n", cur.Fields[2].Value, cur.Fields[2].Contract);
+
 		// Initialize contribution
 		var contribution = sdk.ConstUint248(0)
 
