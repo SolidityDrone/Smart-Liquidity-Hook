@@ -11,8 +11,11 @@ Whenever a trade pushes the price beyond the predefined slippage threshold, the 
 Each time liquidity is added or removed, an event is emitted and recorded in a receipt list that is submitted to the Brevis prover. The Brevis circuit computes time-based contribution points, allowing LPs to claim their share of rewards generated while providing liquidity. LPs can unlock their rewards by requesting a Brevis proof, which validates their contribution.
 
 ## **Project Structure**
+
 ├── app # Frontend and application logic
-├── contracts # Foundry folder containing smart contracts 
+
+├── contracts # Foundry folder containing smart contracts
+
 └── prover # Brevis circuits for proof generation
 
 

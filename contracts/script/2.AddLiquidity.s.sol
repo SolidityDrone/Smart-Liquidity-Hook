@@ -37,7 +37,7 @@ contract AddLiquidity is Script, Test{
     address internal sepoliaPositionManager = 0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9;
     address internal sepoliaUniversalRouter = 0xf342FfB466018938c6251E2CC62Cf6AD8D936cf8;
 
-    address internal deployedHookIstance = 0x8b0A10f3ECC0a52c40ae2B5D3726a4A068FC6655;
+    address internal deployedHookIstance = 0xB9bE662C61c09A62A36de4a49c1A666AD2bD94Ef;
 
     PoolKey key;
     Currency currency0;
@@ -65,8 +65,8 @@ contract AddLiquidity is Script, Test{
             currency1: currency1,
             fee: uint24(100),
             parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
-            amount0Desired: 1000e6,
-            amount1Desired: 1000e6,
+            amount0Desired: 10000e6,
+            amount1Desired: 10000e6,
             amount0Min: 1,  // naive
             amount1Min: 1, // naive
             to: address(this),

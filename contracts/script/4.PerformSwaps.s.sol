@@ -40,7 +40,7 @@ contract PerformSwaps is Script, Test{
     address internal sepoliaAavePoolAddress = 0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951;
     address internal sepoliaPositionManager = 0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9;
     address internal cLPoolManagerAddress = 0x6F9302eE8760c764d775B1550C65468Ec4C25Dfc;
-    address internal deployedHookIstance = 0x8b0A10f3ECC0a52c40ae2B5D3726a4A068FC6655;
+    address internal deployedHookIstance = 0xB9bE662C61c09A62A36de4a49c1A666AD2bD94Ef;
     address payable internal sepoliaUniversalRouter = payable(address(0xf342FfB466018938c6251E2CC62Cf6AD8D936cf8));
 
 
@@ -82,6 +82,8 @@ contract PerformSwaps is Script, Test{
     function run() public {
         
         vm.startBroadcast();
+        IERC20(sepoliaUSDC).approve(address(sepoliaVault), type(uint).max);
+        IERC20(sepoliaUSDT).approve(address(sepoliaVault), type(uint).max);
         IERC20(sepoliaUSDC).approve(address(sepoliaVault), type(uint).max);
         IERC20(sepoliaUSDT).approve(address(sepoliaVault), type(uint).max);
         permit2.approve(address(sepoliaUSDC), address(sepoliaVault), type(uint160).max, type(uint48).max);

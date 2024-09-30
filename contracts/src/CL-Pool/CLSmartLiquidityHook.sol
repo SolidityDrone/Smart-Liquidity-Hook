@@ -301,36 +301,47 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
         uint amountToWithdraw0 = (currentATokenBalance0 * liquidityPercentage) / 1e6;
         uint amountToWithdraw1 = (currentATokenBalance1 * liquidityPercentage) / 1e6;
 
-        // Call the Aave withdraw function
-        aavePool.withdraw(address(token0), amountToWithdraw0, address(this));
-        aavePool.withdraw(address(token1), amountToWithdraw1, address(this));
+        // Withdraw tokens from the Aave pool
+        uint amount0 = aavePool.withdraw(address(token0), IERC20(aToken0).balanceOf(address(this)), address(this));
+        uint amount1 = aavePool.withdraw(address(token1), IERC20(aToken1).balanceOf(address(this)), address(this));
+
+        // Get unscaled Aave balances
+        (uint unscaledBal0, uint unscaledBal1) = getUnscaledAaveBalance(address(token0), address(token1));
+
+        // Assume unscaledBal0 and unscaledBal1 are already defined and initialized
+        uint256 bal0 = IERC20(token0).balanceOf(address(this));
+        uint256 bal1 = IERC20(token1).balanceOf(address(this));
+
+   
+        if (bal0 > (unscaledBal0 * 6)) {
+            uint256 claim0 = bal0 - (unscaledBal0 * 6);
+            if (claim0 > bal0) {
+                claim0 = 0;
+            }
+            if (claim0 > 0) {
+                rewardsAccrued.token0Bal += claim0;
+            }
+        } else {
+
+            uint256 claim0 = 0;
+        }
+        if (bal1 > (unscaledBal1 * 6)) {
+
+            uint256 claim1 = bal1 - (unscaledBal1 * 6);
 
 
-         (uint unscaledBal0, uint unscaledBal1) = getUnscaledAaveBalance(address(token0), address(token1));
-       // Assume unscaledBal0 and unscaledBal1 are already defined and initialized
-
+            if (claim1 > bal1) {
+                claim1 = 0;
+            }
+            if (claim1 > 0) {
+                rewardsAccrued.token1Bal += claim1;
+            }
+        } else {
       
-        uint256 bal0 = token0.balanceOf(address(this));
-        uint256 bal1 = token1.balanceOf(address(this));
-        uint256 claim0 = bal0 - (unscaledBal0 * 6);
-        uint256 claim1 = bal1 - (unscaledBal1 * 6);
-        if (claim0 > bal0) {
-            claim0 = 0; 
+            uint256 claim1 = 0;
         }
-        if (claim1 > bal1) {
-            claim1 = 0;
-        }
-        if (claim1 > 0) {
-            rewardsAccrued.token0Bal += claim0;
-        }
-        if (claim0 > 0) {
-            rewardsAccrued.token1Bal += claim1;
-        }
-
-        // Step 4: Proceed with modifying the liquidity position and burning tokens
         PositionConfig memory config = PositionConfig({poolKey: key, tickLower: MIN_TICK, tickUpper: MAX_TICK});
 
-        // amount0Min and amount1Min is 0 as some hook takes a fee from here
         Plan memory planner = Planner.init().add(
             Actions.CL_DECREASE_LIQUIDITY, abi.encode(1, config, params.liquidity, 0, 0, new bytes(0))
         );
@@ -455,7 +466,7 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
             actionParams[0] = abi.encode(1, config, targetLiquidity, 0, 0, ZERO_BYTES);
             actionParams[1] = abi.encode(address(token0));
             actionParams[2] = abi.encode(address(token1));
-            // 0x01 is for decrease liquidity; 0x17 is close currency;
+            
             positionManager.modifyLiquiditiesWithoutLock(hex'011717', actionParams);
 
             uint balance0 = IERC20(token0).balanceOf(address(this)) - rewardsAccrued.token0Bal;
@@ -466,7 +477,7 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
             aavePool.deposit(Currency.unwrap(poolKey.currency0), balance0, address(this), 0);
             aavePool.deposit(Currency.unwrap(poolKey.currency1), balance1, address(this), 0);
 
-            // Reset the withdraw flag after rebalancing
+            
             delete withdrawTriggered;
             
         } 
@@ -563,34 +574,55 @@ contract CLSmartLiquidityHook is CLBaseHook, BrevisAppZkOnly, Ownable{
     }
 
     function withdrawLiquidityAndInject(PoolKey calldata poolKey, address sender, uint256 priceImpact) internal {
-        // Withdraw liquidity from Aave proportional to the price impact
-        PoolId poolId = poolKey.toId();
+    // Withdraw liquidity from Aave proportional to the price impact
+    PoolId poolId = poolKey.toId();
 
-        (address aToken0, address aToken1) = getAaveLiquidTokens(address(token0), address(token1));
+    (address aToken0, address aToken1) = getAaveLiquidTokens(address(token0), address(token1));
 
-        uint amount0 = aavePool.withdraw(address(token0), IERC20(aToken0).balanceOf(address(this)), address(this));
-        uint amount1 = aavePool.withdraw(address(token1), IERC20(aToken1).balanceOf(address(this)), address(this));
-        (uint unscaledBal0, uint unscaledBal1) = getUnscaledAaveBalance(address(token0), address(token1));
-       // Assume unscaledBal0 and unscaledBal1 are already defined and initialized
+    uint amount0 = aavePool.withdraw(address(token0), IERC20(aToken0).balanceOf(address(this)), address(this));
+    uint amount1 = aavePool.withdraw(address(token1), IERC20(aToken1).balanceOf(address(this)), address(this));
 
-        uint256 bal0 = IERC20(token0).balanceOf(address(this));
-        uint256 bal1 = IERC20(token1).balanceOf(address(this));
+
+    (uint unscaledBal0, uint unscaledBal1) = getUnscaledAaveBalance(address(token0), address(token1));
+
+    uint256 bal0 = IERC20(token0).balanceOf(address(this));
+    uint256 bal1 = IERC20(token1).balanceOf(address(this));
+
+    if (bal0 > (unscaledBal0 * 6)) {
+       
         uint256 claim0 = bal0 - (unscaledBal0 * 6);
-        uint256 claim1 = bal1 - (unscaledBal1 * 6);
+
+       
         if (claim0 > bal0) {
             claim0 = 0; 
         }
-        if (claim1 > bal1) {
-            claim1 = 0;
-        }
-        if (claim1 > 0) {
+
+   
+        if (claim0 > 0) {
             rewardsAccrued.token0Bal += claim0;
         }
-        if (claim0 > 0) {
-            rewardsAccrued.token1Bal += claim1;
+    } else {
+       
+        uint256 claim0 = 0;
+    }
+
+        if (bal1 > (unscaledBal1 * 6)) {
+       
+            uint256 claim1 = bal1 - (unscaledBal1 * 6);
+
+          
+            if (claim1 > bal1) {
+                claim1 = 0; // Prevent underflow
+            }
+
+           
+            if (claim1 > 0) {
+                rewardsAccrued.token1Bal += claim1;
+            }
+        } else {
+            // If bal1 is smaller, no claim is made
+            uint256 claim1 = 0;
         }
-        withdrawTriggered = true;
-        _addLiquidityDuringSwap(poolKey);
     }
 
     function _addLiquidityDuringSwap(PoolKey memory poolKey)
