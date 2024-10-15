@@ -38,7 +38,7 @@ contract RemoveLiquidity is Script, Test{
     address internal sepoliaPositionManager = 0x969D90aC74A1a5228b66440f8C8326a8dA47A5F9;
     address internal sepoliaUniversalRouter = 0xf342FfB466018938c6251E2CC62Cf6AD8D936cf8;
 
-    address internal deployedHookIstance = 0xB9bE662C61c09A62A36de4a49c1A666AD2bD94Ef;
+    address internal deployedHookIstance = 0xc81E0E36E7F78F0636c27B6FbAc1dDc201bFDF4f;
 
     PoolKey key;
     Currency currency0;
@@ -67,7 +67,7 @@ contract RemoveLiquidity is Script, Test{
         CLSmartLiquidityHook.RemoveLiquidityParams memory params = CLSmartLiquidityHook.RemoveLiquidityParams({
             currency0: currency0,
             currency1: currency1,
-            fee: uint24(100),
+            fee: uint24(102),
             parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
             liquidity: currentLiquidityBalance / 2,   // 50% of deposited liquidity
             deadline: block.timestamp 

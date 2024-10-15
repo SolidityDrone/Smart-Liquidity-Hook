@@ -82,7 +82,7 @@ contract HookInitializer is Script, Test{
             currency1: currency1,
             hooks: hook,
             poolManager: ICLPoolManager(cLPoolManagerAddress),
-            fee: uint24(100), 
+            fee: uint24(102), 
             parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10)
         });
         vm.broadcast();
@@ -98,15 +98,15 @@ contract HookInitializer is Script, Test{
 
 
         ///////////////////////
-        //  1. Add Liquidity //
+        //  1. Add Liquidity  /
         ///////////////////////
         CLSmartLiquidityHook.AddLiquidityParams memory params = CLSmartLiquidityHook.AddLiquidityParams({
             currency0: currency0,
             currency1: currency1,
-            fee: uint24(100),
+            fee: uint24(102),
             parameters: bytes32(uint256(hook.getHooksRegistrationBitmap())).setTickSpacing(10),
-            amount0Desired: 1000e6,
-            amount1Desired: 1000e6,
+            amount0Desired: 100e6,
+            amount1Desired: 100e6,
             amount0Min: 1,  // naive
             amount1Min: 1, // naive
             to: address(this),

@@ -1,10 +1,8 @@
 package age
 
 import (
-
 	"math/big"
 	"testing"
-
 	"github.com/brevis-network/brevis-sdk/sdk"
 	"github.com/brevis-network/brevis-sdk/test"
 	"github.com/ethereum/go-ethereum/common"
