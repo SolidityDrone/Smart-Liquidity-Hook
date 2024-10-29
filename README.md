@@ -2,6 +2,15 @@
 
 **SLH** is a PancakeSwap V4 hook developed to maximize rewards for Liquidity Providers (LPs) in stablecoin pairs such as USDC/USDT. This project introduces a novel mechanism that allows liquidity pools to generate profits from both liquidity provision and lending simultaneously.
 
+This project is to be considered WIP and won 1st Prize at V4 Hookaton! This is not production ready and needs to be improved for such scope.
+
+[Dorahack v4Hookaton winners](https://dorahacks.io/hackathon/v4hookathon/winner)
+
+[Dorahack Buidl](https://dorahacks.io/buidl/16770)
+
+### Future 
+Further development will still take place in this repository. Stay tuned
+
 ## **How It Works**
 
 The SLH keeps 30% of the pool’s capacity as active liquidity to facilitate small trades, while the remaining 70% is deposited into the Aave v3 market to maximize the efficiency of idle liquidity. 
